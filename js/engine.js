@@ -79,13 +79,13 @@ E.reconcile = (bank, caixa, o) => {
   const seen = new Map();
   const issues = [], matched = [];
   const add = (type, b, c, action, extra) => {
-    const nd = x => (x ? x.date + '|' + x.cents + '|' + U.norm(x.desc) : '-');
+    const nd = x => (x ? x.date + '|' + x.cents + '|' + U.norm(x.desc) + '|' + (x.bankName || '') : '-');
     let key = type + '|' + nd(b) + '|' + nd(c);
     const n = (seen.get(key) || 0) + 1; seen.set(key, n); if (n > 1) key += '#' + n;
     const it = Object.assign({ key, type, bank: b || null, caixa: c || null, diff: (b ? b.cents : 0) - (c ? c.cents : 0), action }, extra);
     issues.push(it);
   };
-  const L = (x, nome) => 'linha ' + x.line + ' do ' + nome;
+  const L = (x, nome) => 'linha ' + x.line + ' do ' + nome + (x.bankName && nome === 'extrato' ? ' ' + x.bankName : '');
 
   pairs.forEach(({ b, c, kind }) => {
     const days = b.day - c.day;
@@ -138,9 +138,11 @@ E.reconcile = (bank, caixa, o) => {
   caixa.forEach(x => { if (x.cat && x.cents < 0) cats.set(x.cat, (cats.get(x.cat) || 0) - x.cents); });
   const topCats = [...cats.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
 
+  const bankNames = [...new Set(bank.map(b => b.bankName).filter(Boolean))];
+  const byBank = bankNames.length > 1 ? bankNames.map(n => Object.assign({ name: n }, E.sum(bank.filter(b => b.bankName === n)), { ok: matched.filter(m => m.bank.bankName === n).length, pend: issues.filter(i => i.bank && i.bank.bankName === n).length })) : null;
   const all = bank.concat(caixa);
   return {
-    matched, issues, counts, totals: { bank: tb, caixa: tc },
+    matched, issues, counts, totals: { bank: tb, caixa: tc }, byBank, pendCaixaOnly: issues.filter(i => !i.bank).length,
     pendValue, universe,
     pctQtd: universe ? matched.length / universe : 0,
     pctVal: okVol + issVol ? okVol / (okVol + issVol) : 0,

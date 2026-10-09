@@ -111,3 +111,6 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--blue);font-weight:600
 }
 .btn.danger{color:var(--red);border-color:#f3c4c4}
 .btn.danger:hover{background:#fef2f2;border-color:var(--red);color:var(--red)}
+.sec{font-size:15px;color:var(--ink);margin:6px 0 12px}
+.addbank{display:grid;place-items:center;min-height:150px;border:2px dashed #b9cde8;background:var(--soft);color:var(--blue);font-weight:700;font-size:15px;cursor:pointer;box-shadow:none}
+.addbank:hover{border-color:var(--green);background:var(--green-l);color:#0b7a50}

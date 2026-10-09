@@ -80,6 +80,7 @@ CLAUDE.md   este documento
 ## Estado atual (implementado)
 
 - `index.html` + `css/style.css` + `js/` (`utils`, `parsers`, `engine`, `charts`, `report`, `demo`, `app`). Bibliotecas locais em `js/vendor/` (SheetJS 0.18.5, Chart.js 4.4.1, jsPDF 2.5.1 + autotable 3.8.2, pdf.js 3.11.174 carregado sob demanda); funciona offline.
+- Vários bancos: cada extrato ocupa um slot (bank0, bank1…), com nome editável; todos são unificados e conferidos contra um único caixa; resumo por banco no dashboard e no PDF.
 - Telas: Visão geral, Arquivos (mapeamento de colunas + parâmetros), Divergências (filtros, busca, CSV), Histórico de rodadas, Relatório PDF.
 - Reenvio do caixa cria nova rodada e marca divergências como resolvida / persistente / nova.
 - Botão "Carregar exemplo" gera dados de demonstração (extrato + caixa com erros + caixa corrigida).

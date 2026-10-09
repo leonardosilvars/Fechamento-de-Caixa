@@ -50,7 +50,7 @@ R.make = (S) => {
   doc.text(closed ? 'CAIXA FECHADO — extrato e planilha totalmente conciliados' : 'COM PENDÊNCIAS — ' + pend + ' divergência(s) a corrigir, impacto de ' + U.brl(r.pendValue), M + 4, y + 7);
   y += 16;
   doc.setTextColor(...RGB.grey); doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-  doc.text('Extrato: ' + S.files.bank.name + '   |   Caixa: ' + S.files.caixa.name, M, y);
+  doc.text('Extrato(s): ' + bankNames() + '   |   Caixa: ' + S.files.caixa.name, M, y);
   y += 5;
 
   // KPIs
@@ -101,11 +101,18 @@ R.make = (S) => {
   });
   y = doc.lastAutoTable.finalY + 8;
 
+  if (r.byBank) {
+    if (y > 230) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...RGB.navy); doc.text('Resultado por banco', M, y); y += 3;
+    doc.autoTable({ startY: y, head: [['Banco / conta', 'Lançamentos', 'Entradas', 'Saídas', 'Fluxo líquido', 'Conciliados', 'Pendências']], body: r.byBank.map(b => [b.name, b.count, U.brl(b.in), U.brl(b.out), U.brl(b.net), b.ok, b.pend]), margin: { left: M, right: M }, theme: 'striped', headStyles: { fillColor: RGB.green }, styles: { fontSize: 8.5 }, columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } } });
+    y = doc.lastAutoTable.finalY + 8;
+  }
+
   // pendências
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...RGB.navy);
   if (y > 240) { doc.addPage(); y = 18; }
   doc.text(closed ? 'Pendências' : 'Pendências a corrigir (' + pend + ')', M, y); y += 3;
-  const side = (x, nome) => (x ? 'L' + x.line + ' · ' + U.iso2short(x.date) + ' · ' + x.desc + ' · ' + U.brl(x.cents) : '— não consta —');
+  const side = (x, nome) => (x ? (x.bankName ? x.bankName + ' · ' : '') + 'L' + x.line + ' · ' + U.iso2short(x.date) + ' · ' + x.desc + ' · ' + U.brl(x.cents) : '— não consta —');
   if (closed) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...RGB.green);
     doc.text('Nenhuma pendência. Todos os lançamentos do extrato foram localizados na planilha de caixa.', M, y + 5);

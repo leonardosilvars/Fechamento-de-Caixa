@@ -16,3 +16,4 @@ Detalhes do projeto: [CLAUDE.md](CLAUDE.md).
 
 ## Dados de teste
 `docs/extrato_outubro_2026.csv` e `docs/caixa_outubro_2026.csv` (fictícios, com 8 divergências propositais).
+Para testar vários bancos: envie juntos `docs/extrato_banco_A_outubro.csv`, `..._B_...` e `..._C_...` (o mesmo extrato dividido em 3 bancos) com o mesmo caixa; o resultado é idêntico.
