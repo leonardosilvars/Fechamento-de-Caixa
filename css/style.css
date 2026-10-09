@@ -109,3 +109,5 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--blue);font-weight:600
   .logo{padding:0 10px 0 0}.nav{flex-direction:row;flex-wrap:wrap}.side-foot{display:none}
   .grid2{grid-template-columns:1fr}.content{padding:16px}.topbar{padding:12px 16px;position:static}
 }
+.btn.danger{color:var(--red);border-color:#f3c4c4}
+.btn.danger:hover{background:#fef2f2;border-color:var(--red);color:var(--red)}

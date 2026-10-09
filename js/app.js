@@ -61,6 +61,7 @@ function renderAll() {
   else { st.className = 'pill amber'; st.textContent = r.issues.length + ' pendência(s) · ' + U.brl(r.pendValue); }
   const nb = $('#nav-issues-count'); nb.textContent = r ? r.issues.length : ''; nb.style.display = r && r.issues.length ? '' : 'none';
   $('#btn-pdf').disabled = !r;
+  $('#btn-clear').disabled = !(S.files.bank || S.files.caixa || S.rounds.length);
   Object.values(CH).forEach(c => c.destroy()); Object.keys(CH).forEach(k => delete CH[k]);
   const view = $('#view');
   view.innerHTML = { overview, files, issues, history, report }[S.view]();
@@ -254,6 +255,16 @@ function makePdf() {
   } catch (e) { console.error(e); toast('Erro ao gerar o PDF: ' + e.message, true); }
 }
 
+
+function clearAll() {
+  if (!confirm('Apagar todos os dados?\n\nOs arquivos carregados, as divergências e o histórico de rodadas serão removidos e o app voltará ao início. Os arquivos originais no seu computador não são afetados.')) return;
+  S.files = { bank: null, caixa: null }; S.cfg = { bank: null, caixa: null }; S.norm = { bank: null, caixa: null };
+  S.opts = { window: 5, tolOk: 0, valueTol: 0, simMin: 0.5, flagDesc: false, opening: 0 };
+  S.result = null; S.cmp = null; S.rounds = [];
+  S.filt = { types: new Set(), q: '', show: 'pending', limit: 150 };
+  S.view = 'overview'; renderAll(); window.scrollTo(0, 0);
+  toast('Dados apagados. Envie novos arquivos para começar.');
+}
 function demo() {
   S.files = { bank: null, caixa: null }; S.rounds = []; S.result = null; S.cmp = null;
   const b = D.bank(); b._side = 'B'; S.files.bank = b; S.cfg.bank = P.makeCfg(b);
@@ -273,6 +284,7 @@ document.addEventListener('click', e => {
   else if (a === 'more') { S.filt.limit += 300; renderAll(); }
   else if (a === 'csv') exportCsv();
   else if (a === 'pdf') makePdf();
+  else if (a === 'clear') clearAll();
 });
 
 document.addEventListener('change', e => {
