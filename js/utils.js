@@ -58,17 +58,21 @@ U.parseAmount = v => {
   return (neg ? -c : c) || 0;
 };
 
-const STOP = new Set(['pix', 'ted', 'doc', 'de', 'da', 'do', 'das', 'dos', 'em', 'pgto', 'pagto', 'pagamento', 'compra', 'transf', 'transferencia', 'recebido', 'recebimento', 'enviado', 'cred', 'deb', 'ref', 'para', 'por', 'com', 'no', 'na', 'cliente', 'fornecedor']);
+const STOP = new Set(['pix', 'ted', 'doc', 'de', 'da', 'do', 'das', 'dos', 'em', 'pgto', 'pagto', 'pagamento', 'compra', 'transf', 'transferencia', 'recebido', 'recebimento', 'enviado', 'cred', 'deb', 'ref', 'para', 'por', 'com', 'no', 'na', 'cliente', 'fornecedor', 'recebida', 'enviada', 'pago', 'debito', 'boleto', 'qr', 'code', 'fatura', 'pgto', 'compra']);
 U.tokens = s => U.norm(s).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(t => t.length > 1 && !STOP.has(t));
 
-/* Similaridade 0..1 entre descrições */
+/* Similaridade 0..1 entre descrições. Tokens iguais ou, nos nomes truncados do banco, um prefixo do outro (>= 4 letras).
+   Números soltos (documentos) são ignorados. */
 U.sim = (a, b) => {
   const na = U.norm(a), nb = U.norm(b);
   if (na && na === nb) return 1;
-  const A = new Set(U.tokens(a)), B = new Set(U.tokens(b));
-  if (!A.size || !B.size) return 0;
-  let i = 0; A.forEach(t => { if (B.has(t)) i++; });
-  return Math.max(i / (A.size + B.size - i), 0.85 * i / Math.min(A.size, B.size));
+  const keep = s => U.tokens(s).filter(t => !/^\d+$/.test(t));
+  const A = [...new Set(keep(a))], B = [...new Set(keep(b))];
+  if (!A.length || !B.length) return 0;
+  const same = (x, y) => x === y || (Math.min(x.length, y.length) >= 4 && (x.startsWith(y) || y.startsWith(x)));
+  const used = new Set(); let i = 0;
+  A.forEach(t => { const k = B.findIndex((u, j) => !used.has(j) && same(t, u)); if (k >= 0) { used.add(k); i++; } });
+  return Math.max(i / (A.length + B.length - i), 0.85 * i / Math.min(A.length, B.length));
 };
 
 U.loadScript = src => new Promise((res, rej) => {

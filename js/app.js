@@ -47,16 +47,29 @@ function recompute(forceNew) {
   if (isNew) S.rounds.push(round); else S.rounds[S.rounds.length - 1] = round;
 }
 
+
+/* indicador de progresso (leitura de PDF por OCR pode levar alguns minutos) */
+function busy(show, title, pct, sub) {
+  const el = $('#busy'); el.hidden = !show;
+  if (!show) return;
+  $('#busy-t').textContent = title || 'Lendo arquivo…';
+  $('#busy-b').style.width = Math.round((pct || 0) * 100) + '%';
+  $('#busy-s').textContent = sub || '';
+}
+P.progress = (f, m) => busy(true, 'Lendo PDF por reconhecimento de texto (OCR)', f, m + ' Pode levar alguns minutos; mantenha esta aba aberta.');
+
 async function loadFile(side, file, quiet) {
   try {
+    if (file instanceof File && /.pdf$/i.test(file.name)) busy(true, 'Lendo PDF…', 0, file.name);
     const f = file instanceof File ? await P.readFile(file) : file;
+    busy(false);
     f._side = side;
     S.files[side] = f; S.cfg[side] = P.makeCfg(f); delete S.labels[side];
     if (quiet) return;
     recompute(true);
     toast(sideTitle(side) + ' carregado: ' + f.name + (side === 'caixa' && S.rounds.length > 1 ? ' — nova rodada de conferência' : ''));
     if (S.result && S.view === 'files') setView('overview'); else renderAll();
-  } catch (e) { console.error(e); toast('Erro ao ler o arquivo: ' + e.message, true); }
+  } catch (e) { busy(false); console.error(e); toast('Erro ao ler o arquivo: ' + e.message, true); }
 }
 
 /* vários arquivos de uma vez: o primeiro vai ao slot indicado, os demais viram novos bancos */
@@ -167,6 +180,14 @@ function warnIgnored() {
 
 /* ---------- arquivos ---------- */
 function opt(list, sel, none) { return (none ? `<option value="-1" ${sel < 0 ? 'selected' : ''}>(nenhuma)</option>` : '') + list.map((l, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(l)}</option>`).join(''); }
+function metaBlock(m, n) {
+  return `<div class="meta-box"><div><span class="chip green">Formato reconhecido</span> <b>${esc(m.profile)}</b></div>
+    ${m.info ? `<div class="muted small">${esc(m.info)}</div>` : ''}
+    <ul class="checks">${m.checks.map(c => `<li class="${c.ok ? 'ok' : 'bad'}">${c.ok ? '✓' : '✗'} ${esc(c.label)}: ${c.count ? c.got + ' de ' + c.expected : U.brl(c.got) + (c.ok ? '' : ' (esperado ' + U.brl(c.expected) + ')')}</li>`).join('')}</ul>
+    ${m.warn && m.warn.length ? `<details><summary>${m.warn.length} linha(s) com leitura a conferir</summary><ul class="ign">${m.warn.slice(0, 80).map(w => `<li class="warn">${esc(w.text)}</li>`).join('')}</ul></details>` : ''}
+    ${n.filtered && n.filtered.length ? `<p class="muted small">${n.filtered.length} linha(s) fora da conta filtrada ficaram de fora da conferência (ex.: recebimentos internos de plataformas como ASAAS/PagSeguro, que só entram no banco na transferência).</p>` : ''}
+  </div>`;
+}
 function fileCard(side) {
   const f = S.files[side], title = sideTitle(side), isBank = side !== 'caixa';
   const input = `<input type="file" data-file="${side}" accept=".csv,.xlsx,.xls,.pdf,.ofx,.txt,.tsv" ${isBank ? 'multiple' : ''} hidden>`;
@@ -179,7 +200,7 @@ function fileCard(side) {
   return `<div class="card"><div class="card-h"><h3>${title}</h3>
     <span class="row"><label class="btn small">${side === 'caixa' && S.result ? 'Reenviar planilha corrigida' : 'Substituir arquivo'}${input}</label>${rm}</span></div>
     <div class="fileinfo"><span class="chip">${f.kind.toUpperCase()}</span> <b>${esc(f.name)}</b> <span class="muted">· ${n.items.length} lançamentos lidos · ${n.ignored.length} linha(s) ignorada(s)${warn.length ? ` (<b class="neg">${warn.length} com problema</b>)` : ''}</span></div>
-    ${f.kind === 'pdf' ? '<p class="note">PDF: dados extraídos do texto do documento. Confira a pré-visualização abaixo; para maior precisão prefira CSV/Excel/OFX.</p>' : ''}
+    ${f.meta ? metaBlock(f.meta, n) : f.kind === 'pdf' ? '<p class="note">PDF: dados extraídos do texto do documento. Confira a pré-visualização abaixo; para maior precisão prefira CSV/Excel/OFX.</p>' : ''}
     <div class="map-grid">
       ${isBank ? `<label>Nome do banco / conta<input type="text" data-label="${side}" value="${esc(bankLabel(side))}" placeholder="Ex.: Itaú CC 1234"></label>` : ''}
       ${f.sheets.length > 1 ? `<label>Aba<select ${d}="${side}:sheet">${f.sheets.map((s, i) => `<option value="${i}" ${i === f.sheet ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>` : ''}
@@ -188,6 +209,8 @@ function fileCard(side) {
       <label>Estrutura do valor<select ${d}="${side}:mode"><option value="single" ${cfg.mode === 'single' ? 'selected' : ''}>Coluna única (com sinal)</option><option value="split" ${cfg.mode === 'split' ? 'selected' : ''}>Crédito / Débito separados</option></select></label>
       ${cfg.mode === 'single' ? sel('value', 'Valor', false) + sel('type', 'Tipo D/C (opcional)') : sel('credit', 'Crédito / Entrada') + sel('debit', 'Débito / Saída')}
       ${sel('cat', 'Categoria (opcional)')}
+      <label>Filtrar linhas pela coluna<select ${d}="${side}:filterCol">${opt(labels, cfg.filterCol == null ? -1 : cfg.filterCol, true)}</select></label>
+      <label>…que contenham o texto<input type="text" ${d}="${side}:filterText" value="${esc(cfg.filterText || '')}" placeholder="Ex.: Banco Cora"></label>
       <label class="chk"><input type="checkbox" ${d}="${side}:invert" ${cfg.invert ? 'checked' : ''}> Inverter sinais</label>
     </div>
     <div class="tablewrap"><table class="tbl compact"><thead><tr><th>Linha</th><th>Data</th><th>Descrição</th><th class="r">Valor</th></tr></thead><tbody>
@@ -346,6 +369,7 @@ document.addEventListener('change', e => {
     if (key === 'sheet') { f.sheet = +t.value; S.cfg[side] = P.makeCfg(f); }
     else if (key === 'invert') cfg.invert = t.checked;
     else if (key === 'mode') cfg.mode = t.value;
+    else if (key === 'filterText') cfg.filterText = t.value;
     else if (key === 'headerRow') { const hr = Math.max(0, parseInt(t.value, 10) || 0); Object.assign(cfg, P.autoMap(f.sheets[f.sheet].rows, hr), { headerRow: hr }); }
     else cfg[key] = +t.value;
     recompute(false); renderAll();

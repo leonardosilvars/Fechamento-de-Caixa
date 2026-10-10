@@ -19,6 +19,21 @@ E.sum = items => {
   return { count: items.length, in: inn, out, net: inn - out, maxIn: max_in, maxOut: max_out };
 };
 
+/* índices de 2 a 4 valores cuja soma é igual ao alvo (tolerância em centavos); prefere menos itens */
+E.findSum = (vals, target, tol) => {
+  for (let size = 2; size <= 4; size++) {
+    let found = null;
+    const rec = (start, left, acc, chosen) => {
+      if (found) return;
+      if (left === 0) { if (Math.abs(acc - target) <= tol) found = chosen.slice(); return; }
+      for (let i = start; i < vals.length && !found; i++) { chosen.push(i); rec(i + 1, left - 1, acc + vals[i], chosen); chosen.pop(); }
+    };
+    rec(0, size, 0, []);
+    if (found) return found;
+  }
+  return null;
+};
+
 E.reconcile = (bank, caixa, o) => {
   const usedB = new Set(), usedC = new Set(), pairs = [];
   const pair = (b, c, kind) => { usedB.add(b.id); usedC.add(c.id); pairs.push({ b, c, kind }); };
@@ -43,6 +58,18 @@ E.reconcile = (bank, caixa, o) => {
     if (!l.length) return;
     l.sort((a, b) => dd(a, c) - dd(b, c) || U.sim(b.desc, c.desc) - U.sim(a.desc, c.desc));
     pair(l[0], c, dd(l[0], c) <= o.tolOk ? 'ok' : 'date');
+  });
+
+  // 2b) um lançamento do extrato = soma de 2 a 4 lançamentos do caixa (mesmo favorecido e data)
+  const groups = [];
+  bank.forEach(b => {
+    if (usedB.has(b.id)) return;
+    const cand = caixa.filter(c => !usedC.has(c.id) && c.cents !== 0 && Math.sign(c.cents) === Math.sign(b.cents) && Math.abs(c.cents) < Math.abs(b.cents) && dd(b, c) <= o.tolOk && U.sim(b.desc, c.desc) >= o.simMin);
+    if (cand.length < 2 || cand.length > 14) return;
+    const idx = E.findSum(cand.map(c => c.cents), b.cents, o.valueTol);
+    if (!idx) return;
+    const cs = idx.map(i => cand[i]);
+    usedB.add(b.id); cs.forEach(c => usedC.add(c.id)); groups.push({ b, cs });
   });
 
   // 3) mesmo valor absoluto com sinal oposto
@@ -101,6 +128,12 @@ E.reconcile = (bank, caixa, o) => {
       const dtxt = days ? ' A data também difere (caixa ' + U.iso2br(c.date) + ', extrato ' + U.iso2br(b.date) + ').' : '';
       add('value', b, c, 'Ajustar o valor na ' + L(c, 'caixa') + ': caixa ' + U.brl(c.cents) + ', extrato ' + U.brl(b.cents) + ' (diferença ' + U.brl(b.cents - c.cents) + ').' + dtxt, { dayDiff: days });
     }
+  });
+
+  groups.forEach(({ b, cs }) => {
+    const sum = cs.reduce((a, c) => a + c.cents, 0);
+    const agg = { id: cs.map(c => c.id).join('+'), line: cs.map(c => c.line).join(' + '), date: cs[0].date, day: cs[0].day, desc: cs.map(c => c.desc).join(' + '), cents: sum, cat: cs[0].cat, grouped: cs.length };
+    matched.push({ type: 'ok', bank: b, caixa: agg, group: cs, diff: b.cents - sum, dayDiff: b.day - cs[0].day, action: 'Conciliado por soma: ' + cs.length + ' lançamentos do caixa (linhas ' + agg.line + ') = 1 do extrato (' + L(b, 'extrato') + ').' });
   });
 
   bank.filter(b => !usedB.has(b.id)).forEach(b => {

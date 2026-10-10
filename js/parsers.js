@@ -3,6 +3,7 @@
    Os arquivos nunca são alterados: tudo é lido em memória. */
 const P = {};
 
+P.progress = null;
 P.decode = buf => {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
   catch (e) { return new TextDecoder('windows-1252').decode(buf); }
@@ -51,17 +52,35 @@ P.loadPdfjs = async () => {
 const AMT = /-?\(?(?:R\$\s?)?\d{1,3}(?:\.\d{3})*,\d{2}\)?-?(?:\s?[CD](?![A-Za-z]))?/g;
 P.readPdf = async (buf, name) => {
   await P.loadPdfjs();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+  const pages = [];
   const lines = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const tc = await (await pdf.getPage(p)).getTextContent();
-    const items = tc.items.filter(i => i.str.trim()).map(i => ({ s: i.str, x: i.transform[4], y: i.transform[5] }));
-    items.sort((a, b) => b.y - a.y || a.x - b.x);
-    let cur = [], y = null;
-    const flush = () => { if (cur.length) lines.push(cur.sort((a, b) => a.x - b.x).map(i => i.s).join(' ').replace(/\s+/g, ' ').trim()); cur = []; };
-    items.forEach(i => { if (y !== null && Math.abs(i.y - y) > 3) flush(); if (!cur.length) y = i.y; cur.push(i); });
-    flush();
+    const items = tc.items.filter(i => i.str.trim()).map(i => ({ s: i.str, x: Math.round(i.transform[4]), y: Math.round(i.transform[5]) }));
+    pages.push(items);
   }
+  const total = pages.reduce((a, p) => a + p.length, 0);
+  // 1) extrato Cora (texto)
+  if (total && X.isCora(pages)) {
+    const r = X.parseCora(pages);
+    return { name, kind: 'pdf', sheets: [{ name: 'Extrato', rows: r.rows }], sheet: 0, meta: r.meta, preset: { headerRow: 1, date: 0, desc: 1, value: 2, credit: -1, debit: -1, type: -1, cat: -1, mode: 'single', invert: false, filterCol: -1, filterText: '' } };
+  }
+  // 2) PDF sem texto (desenhado/escaneado): OCR
+  if (!total) {
+    const r = await X.ocrCaixa(buf, P.progress);
+    if (r.rows) {
+      return { name, kind: 'pdf', sheets: [{ name: 'Caixa', rows: r.rows }], sheet: 0, meta: r.meta, preset: { headerRow: 1, date: 0, desc: 10, value: 9, credit: -1, debit: -1, type: -1, cat: -1, mode: 'single', invert: false, filterCol: r.meta.bankAcc ? 3 : -1, filterText: r.meta.bankAcc || '' } };
+    }
+    throw new Error('Este PDF não contém texto e o OCR não reconheceu o layout do relatório de caixa.');
+  }
+  // 3) PDF genérico com texto
+  pages.forEach(items => {
+    const rows = []; let cur = [], y = null;
+    items.slice().sort((a, b) => b.y - a.y || a.x - b.x).forEach(i => { if (y !== null && Math.abs(i.y - y) > 3) { rows.push(cur); cur = []; } if (!cur.length) y = i.y; cur.push(i); });
+    if (cur.length) rows.push(cur);
+    rows.forEach(r => lines.push(r.sort((a, b) => a.x - b.x).map(i => i.s).join(' ').replace(/\s+/g, ' ').trim()));
+  });
   const years = {};
   lines.forEach(l => (l.match(/\d{2}\/\d{2}\/(\d{4})/g) || []).forEach(d => { const y = d.slice(-4); years[y] = (years[y] || 0) + 1; }));
   const best = Object.keys(years).sort((a, b) => years[b] - years[a])[0];
@@ -158,6 +177,7 @@ P.autoMap = (rows, hr) => {
 };
 
 P.makeCfg = file => {
+  if (file.preset) return Object.assign({}, file.preset);
   const rows = file.sheets[file.sheet].rows;
   const headerRow = P.detectHeader(rows);
   return Object.assign({ headerRow, invert: false }, P.autoMap(rows, headerRow));
@@ -171,11 +191,12 @@ const SALDO = /^(saldo|sdo|s a l d o|total)\b/;
 P.normalize = (file, cfg) => {
   const rows = file.sheets[file.sheet].rows;
   const defYear = file.defYear || new Date().getFullYear();
-  const items = [], ignored = [];
+  const items = [], ignored = [], filtered = [];
   const cell = (r, i) => (i >= 0 && r[i] != null ? r[i] : '');
   for (let i = cfg.headerRow; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.every(c => c === '' || c == null)) continue;
+    if (cfg.filterCol >= 0 && cfg.filterText && !U.norm(r[cfg.filterCol]).includes(U.norm(cfg.filterText))) { filtered.push({ line: i + 1, raw: r.map(c => (c == null ? '' : String(c))).join(' | ') }); continue; }
     const date = cfg.date >= 0 ? U.parseDate(cell(r, cfg.date), defYear) : null;
     const desc = String(cell(r, cfg.desc)).trim();
     let cents = null;
@@ -199,5 +220,5 @@ P.normalize = (file, cfg) => {
     if (cents == null) { ignored.push({ line, kind: 'warn', reason: 'Data sem valor válido', raw }); continue; }
     items.push({ id: (file._side || 'x') + line, line, date, day: U.isoToDay(date), desc, cents, cat: cfg.cat >= 0 ? String(cell(r, cfg.cat)).trim() : '' });
   }
-  return { items, ignored };
+  return { items, ignored, filtered };
 };

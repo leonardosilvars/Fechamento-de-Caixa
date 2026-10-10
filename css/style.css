@@ -114,3 +114,10 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--blue);font-weight:600
 .sec{font-size:15px;color:var(--ink);margin:6px 0 12px}
 .addbank{display:grid;place-items:center;min-height:150px;border:2px dashed #b9cde8;background:var(--soft);color:var(--blue);font-weight:700;font-size:15px;cursor:pointer;box-shadow:none}
 .addbank:hover{border-color:var(--green);background:var(--green-l);color:#0b7a50}
+.meta-box{background:var(--green-l);border:1px solid #b7e4cf;border-radius:10px;padding:10px 14px;margin:8px 0}
+.chip.green{background:var(--green);color:#fff}
+.checks{list-style:none;margin:6px 0 0;padding:0;font-size:13px}.checks .ok{color:#0b7a50}.checks .bad{color:var(--red);font-weight:600}
+.busy{position:fixed;inset:0;background:rgba(15,45,82,.45);display:grid;place-items:center;z-index:60}
+.busy[hidden]{display:none}
+.busy-box{background:#fff;border-radius:14px;padding:22px 26px;min-width:320px;max-width:90vw;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.busy-box .bar{height:8px;margin:12px 0 8px}

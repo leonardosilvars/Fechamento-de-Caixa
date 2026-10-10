@@ -91,3 +91,11 @@ CLAUDE.md   este documento
 - Testar com arquivos reais (layouts do banco e da planilha) e ajustar auto-detecção de colunas.
 - PDF de extrato depende do texto extraível (PDFs escaneados exigiriam OCR).
 - Histórico de rodadas só vive na sessão (não persiste ao fechar a página).
+
+## Leitura de PDF (formatos reconhecidos)
+
+- **Extrato Cora (PDF com texto):** data, tipo, nome, documento e valor por lançamento. Validado pelos totais do cabeçalho (entradas, saídas, saldo final).
+- **Relatório de Caixa Bancário (PDF "desenhado", sem texto):** lido por OCR local (Tesseract.js + idioma `por`, em `js/vendor/tesseract/`), com a página girada 90°. Colunas: Data, Pagante/Credor, Descrição, Caixa, Valor, Taxa, Líquido, Transferido, Saldo. Cada linha é conferida pelo saldo corrente e o rodapé (variação e saldo final) é validado.
+- Recebimentos individuais de plataformas (ASAAS/PagSeguro) não entram no banco; só a linha "Transferência: X --> Banco Y". Por isso o caixa é filtrado pela conta bancária ("Caixa" contém "Banco Cora") e as transferências ganham sinal pela direção.
+- Conciliação por soma: 1 lançamento do extrato = 2 a 4 do caixa (mesmo favorecido e data).
+- OCR leva ~2-3 min para 28 páginas e só funciona via http(s) (atalho `.bat` ou Netlify), não com `index.html` aberto por `file://`.
