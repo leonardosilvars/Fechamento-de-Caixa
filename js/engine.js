@@ -56,7 +56,7 @@ E.reconcile = (bank, caixa, o) => {
     if (usedC.has(c.id)) return;
     const l = (byCents.get(c.cents) || []).filter(b => !usedB.has(b.id) && dd(b, c) <= o.window);
     if (!l.length) return;
-    l.sort((a, b) => dd(a, c) - dd(b, c) || U.sim(b.desc, c.desc) - U.sim(a.desc, c.desc));
+    l.sort((a, b) => (o.preferName ? U.sim(b.desc, c.desc) - U.sim(a.desc, c.desc) || dd(a, c) - dd(b, c) : dd(a, c) - dd(b, c) || U.sim(b.desc, c.desc) - U.sim(a.desc, c.desc)));
     pair(l[0], c, dd(l[0], c) <= o.tolOk ? 'ok' : 'date');
   });
 
@@ -70,6 +70,18 @@ E.reconcile = (bank, caixa, o) => {
     if (!idx) return;
     const cs = idx.map(i => cand[i]);
     usedB.add(b.id); cs.forEach(c => usedC.add(c.id)); groups.push({ b, cs });
+  });
+
+  // 2c) um lançamento do caixa = soma de 2 a 4 lançamentos do outro lado (mesmo favorecido e data)
+  const groupsRev = [];
+  caixa.forEach(c => {
+    if (usedC.has(c.id) || c.cents === 0) return;
+    const cand = bank.filter(b => !usedB.has(b.id) && b.cents !== 0 && Math.sign(b.cents) === Math.sign(c.cents) && Math.abs(b.cents) < Math.abs(c.cents) && dd(b, c) <= o.tolOk && U.sim(b.desc, c.desc) >= o.simMin);
+    if (cand.length < 2 || cand.length > 14) return;
+    const idx = E.findSum(cand.map(b => b.cents), c.cents, o.valueTol);
+    if (!idx) return;
+    const bs = idx.map(i => cand[i]);
+    usedC.add(c.id); bs.forEach(b => usedB.add(b.id)); groupsRev.push({ c, bs });
   });
 
   // 3) mesmo valor absoluto com sinal oposto
@@ -128,6 +140,12 @@ E.reconcile = (bank, caixa, o) => {
       const dtxt = days ? ' A data também difere (caixa ' + U.iso2br(c.date) + ', extrato ' + U.iso2br(b.date) + ').' : '';
       add('value', b, c, 'Ajustar o valor na ' + L(c, 'caixa') + ': caixa ' + U.brl(c.cents) + ', extrato ' + U.brl(b.cents) + ' (diferença ' + U.brl(b.cents - c.cents) + ').' + dtxt, { dayDiff: days });
     }
+  });
+
+  groupsRev.forEach(({ c, bs }) => {
+    const sum = bs.reduce((a, b) => a + b.cents, 0);
+    const agg = { id: bs.map(b => b.id).join('+'), line: bs.map(b => b.line).join(' + '), date: bs[0].date, day: bs[0].day, desc: bs.map(b => b.desc).join(' + '), cents: sum, bankName: bs[0].bankName, grouped: bs.length };
+    matched.push({ type: 'ok', bank: agg, caixa: c, groupBank: bs, diff: sum - c.cents, dayDiff: agg.day - c.day, action: 'Conciliado por soma: ' + bs.length + ' lançamentos (linhas ' + agg.line + ') = 1 lançamento do caixa (linha ' + c.line + ').' });
   });
 
   groups.forEach(({ b, cs }) => {

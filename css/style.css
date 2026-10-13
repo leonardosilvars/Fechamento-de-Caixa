@@ -121,3 +121,7 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--blue);font-weight:600
 .busy[hidden]{display:none}
 .busy-box{background:#fff;border-radius:14px;padding:22px 26px;min-width:320px;max-width:90vw;box-shadow:0 12px 40px rgba(0,0,0,.25)}
 .busy-box .bar{height:8px;margin:12px 0 8px}
+.cell{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit;color:var(--ink);width:100%;min-width:90px;background:#fff}
+.cell.r{text-align:right}
+.cell:focus{outline:2px solid #9ec3f0;border-color:var(--blue)}
+.card>.drop{margin-top:6px}

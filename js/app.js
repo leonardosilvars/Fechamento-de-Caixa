@@ -10,7 +10,7 @@ const S = {
 };
 function resetFiles() { S.files = { caixa: null }; S.cfg = { caixa: null }; S.norm = { caixa: null }; S.banks = ['bank0']; S.labels = {}; S.nextBank = 1; }
 resetFiles();
-const TITLES = { overview: 'Visão geral', files: 'Arquivos e parâmetros', issues: 'Divergências', history: 'Histórico de rodadas', report: 'Relatório final' };
+const TITLES = { overview: 'Visão geral', files: 'Arquivos e parâmetros', issues: 'Divergências Caixa', notes: 'Divergências Notas', history: 'Histórico de rodadas', report: 'Relatório final' };
 const loadedBanks = () => S.banks.filter(k => S.files[k]);
 const bankNames = () => loadedBanks().map(k => S.files[k].name).join(' + ');
 const bankLabel = k => S.labels[k] || (S.files[k] ? S.files[k].name.replace(/\.[^.]+$/, '') : '');
@@ -102,12 +102,14 @@ function renderAll() {
   if (!r) { st.className = 'pill grey'; st.textContent = 'Aguardando arquivos'; }
   else if (!r.issues.length) { st.className = 'pill green'; st.textContent = '✓ Caixa fechado — sem pendências'; }
   else { st.className = 'pill amber'; st.textContent = r.issues.length + ' pendência(s) · ' + U.brl(r.pendValue); }
+  if (N.s.items.length) N.run(); else N.s.result = null;
   const nb = $('#nav-issues-count'); nb.textContent = r ? r.issues.length : ''; nb.style.display = r && r.issues.length ? '' : 'none';
+  const nn = $('#nav-notes-count'), nr = N.s.result; nn.textContent = nr ? nr.issues.length : ''; nn.style.display = nr && nr.issues.length ? '' : 'none';
   $('#btn-pdf').disabled = !r;
-  $('#btn-clear').disabled = !(loadedBanks().length || S.files.caixa || S.rounds.length);
+  $('#btn-clear').disabled = !(loadedBanks().length || S.files.caixa || S.rounds.length || N.s.items.length || N.s.files.length);
   Object.values(CH).forEach(c => c.destroy()); Object.keys(CH).forEach(k => delete CH[k]);
   const view = $('#view');
-  view.innerHTML = { overview, files, issues, history, report }[S.view]();
+  view.innerHTML = { overview, files, issues, notes: N.view, history, report }[S.view]();
   if (S.view === 'overview' && r) {
     mk('c-donut', C.donut(r)); mk('c-flow', C.flow(r)); mk('c-cash', C.cash(r)); if (r.topCats.length) mk('c-cats', C.cats(r));
   }
@@ -324,6 +326,7 @@ function clearAll() {
   S.opts = { window: 5, tolOk: 0, valueTol: 0, simMin: 0.5, flagDesc: false, opening: 0 };
   S.result = null; S.cmp = null; S.rounds = [];
   S.filt = { types: new Set(), q: '', show: 'pending', limit: 150 };
+  N.reset();
   S.view = 'overview'; renderAll(); window.scrollTo(0, 0);
   toast('Dados apagados. Envie novos arquivos para começar.');
 }

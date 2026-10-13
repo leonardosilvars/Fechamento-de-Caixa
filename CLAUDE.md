@@ -99,3 +99,12 @@ CLAUDE.md   este documento
 - Recebimentos individuais de plataformas (ASAAS/PagSeguro) não entram no banco; só a linha "Transferência: X --> Banco Y". Por isso o caixa é filtrado pela conta bancária ("Caixa" contém "Banco Cora") e as transferências ganham sinal pela direção.
 - Conciliação por soma: 1 lançamento do extrato = 2 a 4 do caixa (mesmo favorecido e data).
 - OCR leva ~2-3 min para 28 páginas e só funciona via http(s) (atalho `.bat` ou Netlify), não com `index.html` aberto por `file://`.
+
+## Divergências Notas (notas e recibos x caixa)
+
+- Aba **Divergências Notas** (`js/notes.js`): seleciona pasta ou arrasta arquivos de notas/recibos digitalizados.
+- Formatos lidos: imagem (JPG, PNG, WEBP, BMP, GIF, TIFF — OCR), PDF (texto ou digitalizado — OCR por página), TXT/MD/JSON, XML (NF-e: emitente, destinatário, vNF, dhEmi), HTML, Word (.docx), Excel/CSV.
+- Extração por heurística: valor (palavras como "valor total", "total a pagar"), data (prioriza "emissão"), nome (razão social, emitente, favorecido, "recebi de", ou primeira linha). Tudo editável na tabela "Notas lidas"; a conferência é refeita na hora.
+- Conferência com o mesmo motor do caixa (`E.reconcile`): data + valor + nome, com janela de datas maior (notas são emitidas antes do pagamento), soma de várias notas em um lançamento e vice-versa.
+- Resultados: Com nota, Caixa sem nota, Nota sem lançamento no caixa, Valor divergente, Data divergente, Possível duplicidade, Nota não interpretada. Filtros: exigir nota em saídas/entradas, ignorar lançamentos por texto (padrão: "transferência").
+- Dados de teste em `docs/notas_teste/`.
