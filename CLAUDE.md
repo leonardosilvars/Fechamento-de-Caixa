@@ -108,3 +108,7 @@ CLAUDE.md   este documento
 - Conferência com o mesmo motor do caixa (`E.reconcile`): data + valor + nome, com janela de datas maior (notas são emitidas antes do pagamento), soma de várias notas em um lançamento e vice-versa.
 - Resultados: Com nota, Caixa sem nota, Nota sem lançamento no caixa, Valor divergente, Data divergente, Possível duplicidade, Nota não interpretada. Filtros: exigir nota em saídas/entradas, ignorar lançamentos por texto (padrão: "transferência").
 - Dados de teste em `docs/notas_teste/`.
+
+## PWA (instalável)
+- `manifest.webmanifest`, `sw.js` (cache do app e dos arquivos de OCR; atualização em segundo plano), `js/pwa.js` (registro e botão "Instalar app"), ícones em `icons/`.
+- Ao mudar arquivos do app, aumentar `VERSION` em `sw.js` para limpar o cache antigo nos aparelhos.

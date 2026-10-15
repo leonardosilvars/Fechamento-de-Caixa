@@ -2,7 +2,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $l = New-Object System.Net.HttpListener
 $l.Prefixes.Add('http://localhost:5178/')
 $l.Start()
-$types = @{ '.html'='text/html; charset=utf-8'; '.js'='text/javascript; charset=utf-8'; '.css'='text/css; charset=utf-8'; '.md'='text/plain; charset=utf-8'; '.csv'='text/csv; charset=utf-8'; '.pdf'='application/pdf'; '.wasm'='application/wasm'; '.gz'='application/gzip'; '.traineddata'='application/octet-stream' }
+$types = @{ '.html'='text/html; charset=utf-8'; '.js'='text/javascript; charset=utf-8'; '.css'='text/css; charset=utf-8'; '.md'='text/plain; charset=utf-8'; '.csv'='text/csv; charset=utf-8'; '.pdf'='application/pdf'; '.wasm'='application/wasm'; '.gz'='application/gzip'; '.traineddata'='application/octet-stream'; '.webmanifest'='application/manifest+json'; '.json'='application/json'; '.png'='image/png'; '.svg'='image/svg+xml'; '.ico'='image/x-icon'; '.xml'='application/xml'; '.txt'='text/plain; charset=utf-8' }
 while ($l.IsListening) {
   $c = $l.GetContext()
   $p = [Uri]::UnescapeDataString($c.Request.Url.AbsolutePath)

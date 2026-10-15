@@ -20,3 +20,9 @@ Para testar vários bancos: envie juntos `docs/extrato_banco_A_outubro.csv`, `..
 
 ## Notas e recibos
 `docs/notas_teste/` traz notas fictícias em TXT, XML (NF-e) e HTML para testar a aba **Divergências Notas** com `docs/caixa_outubro_2026.csv`. Imagens e PDFs digitalizados usam OCR (somente via atalho `.bat` ou site publicado).
+
+## Instalar como aplicativo (PWA)
+O site é instalável no computador e no celular e funciona offline depois da primeira visita (inclusive OCR).
+- **Chrome/Edge (Windows, Mac, Android):** abra o site e clique em **⬇ Instalar app** (ou no ícone de instalar na barra de endereço / menu ⋮ → *Instalar app*).
+- **iPhone/iPad (Safari):** toque em **Compartilhar → Adicionar à Tela de Início**.
+- A instalação exige o site em `https://` (Netlify) ou `http://localhost` (atalho `.bat`). Para publicar uma nova versão, aumente `VERSION` em `sw.js`.

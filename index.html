@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fechamento de Caixa</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1d5fb8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Fechamento">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/vendor/xlsx.full.min.js"></script>
 <script src="js/vendor/chart.umd.min.js"></script>
@@ -22,12 +30,13 @@
       <button data-view="history"><i>↻</i> Histórico</button>
       <button data-view="report"><i>▤</i> Relatório</button>
     </nav>
+    <div id="install-hint" class="side-foot" hidden style="margin-bottom:8px">📲 Para instalar no iPhone/iPad: toque em <b>Compartilhar</b> e em <b>Adicionar à Tela de Início</b>.</div>
     <div class="side-foot">🔒 Conferência somente leitura.<br>Seus arquivos são processados no navegador e nunca são alterados ou enviados.</div>
   </aside>
   <main>
     <header class="topbar">
       <h1 id="title">Visão geral</h1>
-      <div class="top-r"><span id="status" class="pill grey">Aguardando arquivos</span><button id="btn-clear" class="btn danger" data-action="clear" disabled>Apagar dados</button><button id="btn-pdf" class="btn primary" data-action="pdf" disabled>Relatório PDF</button></div>
+      <div class="top-r"><span id="status" class="pill grey">Aguardando arquivos</span><button id="btn-install" class="btn" hidden>⬇ Instalar app</button><button id="btn-clear" class="btn danger" data-action="clear" disabled>Apagar dados</button><button id="btn-pdf" class="btn primary" data-action="pdf" disabled>Relatório PDF</button></div>
     </header>
     <section id="view" class="content"></section>
   </main>
@@ -43,5 +52,6 @@
 <script src="js/report.js"></script>
 <script src="js/notes.js"></script>
 <script src="js/app.js"></script>
+<script src="js/pwa.js"></script>
 </body>
 </html>
